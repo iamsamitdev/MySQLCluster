@@ -1,0 +1,109 @@
+version: '3.9'
+
+services:
+  management1:
+    container_name: "management1"
+    image: mysql/mysql-cluster:8.0.27
+    volumes:
+      - ./mysql.conf/my.cnf:/etc/my.cnf
+      - ./mysql.conf/mysql-cluster.cnf:/etc/mysql/mysql-cluster.cnf
+      - ./management1-data:/var/lib/mysql
+    expose:
+      - "1186"
+      - "2202"
+      - "3306"
+      - "33060"
+    restart: always
+    command: ndb_mgmd
+    networks:
+      mysqlcluster:
+        ipv4_address: 192.168.0.2
+  ndb1:
+    image: mysql/mysql-cluster:8.0.27
+    container_name: "ndb1"
+    volumes:
+      - ./mysql.conf/my.cnf:/etc/my.cnf
+      - ./mysql.conf/mysql-cluster.cnf:/etc/mysql/mysql-cluster.cnf
+      - ./ndb1-data:/var/lib/mysql
+    expose:
+      - "1186"
+      - "2202"
+      - "3306"
+      - "33060"    
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+    command: ndbd
+    depends_on:
+      - "management1"
+    networks:
+      mysqlcluster:
+        ipv4_address: 192.168.0.3
+  ndb2:
+    image: mysql/mysql-cluster:8.0.27
+    container_name: "ndb2"
+    volumes:
+      - ./mysql.conf/my.cnf:/etc/my.cnf
+      - ./mysql.conf/mysql-cluster.cnf:/etc/mysql/mysql-cluster.cnf
+      - ./ndb2-data:/var/lib/mysql
+    expose:
+      - "1186"
+      - "2202"
+      - "3306"
+      - "33060"      
+    restart: always
+    command: ndbd
+    depends_on:
+      - "management1"
+    networks:
+      mysqlcluster:
+        ipv4_address: 192.168.0.4
+  mysql1:
+    image: mysql/mysql-cluster:8.0.27
+    container_name: "mysql1"
+    ports:
+      - "3663:3306"
+    volumes:
+      - ./mysql.conf/my.cnf:/etc/my.cnf
+      - ./mysql.conf/mysql-cluster.cnf:/etc/mysql/mysql-cluster.cnf
+      - ./mysql1-data:/var/lib/mysql
+      - ./docker-entrypoint-initdb.d/:/docker-entrypoint-initdb.d/
+    expose:
+      - "1186"
+      - "2202"
+      - "3306"
+      - "33060"      
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: demodb
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test
+      MYSQL_ROOT_HOST: '%'
+    command: mysqld
+    depends_on:
+      - "management1"
+      - "ndb1"
+      - "ndb2"
+    networks:
+      mysqlcluster:
+       ipv4_address: 192.168.0.10
+  adminer:
+    image: adminer
+    container_name: "adminer"
+    restart: always
+    ports:
+      - 8081:8080
+    links:
+      - mysql1:db
+    networks:
+      mysqlcluster:
+
+networks:
+ mysqlcluster:
+  driver: bridge
+  ipam:
+    driver: default
+    config:
+    - subnet: 192.168.0.0/16
+    #- gateway: 172.28.5.254

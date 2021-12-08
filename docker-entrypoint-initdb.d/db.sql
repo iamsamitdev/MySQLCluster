@@ -1,0 +1,13 @@
+CREATE DATABASE IF NOT EXISTS sampledb;
+
+CREATE USER 'jame'@'%' IDENTIFIED BY '1234';
+GRANT ALL PRIVILEGES ON sampledb.* TO 'jame'@'%' WITH GRANT OPTION;
+GRANT CREATE USER ON *.* to 'jame'@'%';
+FLUSH PRIVILEGES;
+
+USE sampledb;
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` INT(11) NOT NULL,
+    `name` VARCHAR(50) NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=ndbcluster;
